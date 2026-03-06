@@ -74,6 +74,9 @@ export async function handleResourceRead(
   } catch {
     throw new Error(`Invalid resource URI: ${uri}`);
   }
+  if (url.protocol !== "golem:") {
+    throw new Error(`Invalid resource URI scheme: expected "golem:", got "${url.protocol}"`);
+  }
   const path = url.hostname + url.pathname;
 
   // golem://applications/{accountId}
