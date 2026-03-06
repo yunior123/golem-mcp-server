@@ -1,0 +1,303 @@
+import { z } from "zod";
+import type { GolemAPI } from "./api.js";
+
+// ── Tool Definitions ──
+
+export const TOOLS = [
+  {
+    name: "golem_list_workers",
+    description:
+      "List all workers (agent instances) for a component. Workers are the running instances of a Golem component.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component to list workers for",
+        },
+      },
+      required: ["componentId"],
+    },
+  },
+  {
+    name: "golem_get_worker",
+    description:
+      "Get detailed information about a specific worker, including its status and metadata.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name of the worker",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+  {
+    name: "golem_create_worker",
+    description:
+      "Create a new worker (agent instance) for a component.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name for the new worker",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+  {
+    name: "golem_delete_worker",
+    description: "Delete a worker (agent instance).",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name of the worker to delete",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+  {
+    name: "golem_invoke_agent",
+    description:
+      "Invoke a function on a Golem agent. This calls a method on a running agent instance.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        appName: {
+          type: "string",
+          description: "The application name",
+        },
+        agentTypeName: {
+          type: "string",
+          description: "The agent type name within the application",
+        },
+        methodName: {
+          type: "string",
+          description: "The method to invoke on the agent",
+        },
+        methodParameters: {
+          type: "object",
+          description: "Parameters to pass to the method (optional)",
+        },
+        parameters: {
+          type: "object",
+          description: "Agent initialization parameters (optional)",
+        },
+        envName: {
+          type: "string",
+          description: "Environment name (optional, defaults to default env)",
+        },
+      },
+      required: ["appName", "agentTypeName"],
+    },
+  },
+  {
+    name: "golem_get_component",
+    description:
+      "Get detailed information about a Golem component, including its metadata and exports.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+      },
+      required: ["componentId"],
+    },
+  },
+  {
+    name: "golem_list_applications",
+    description:
+      "List all applications in a Golem account.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        accountId: {
+          type: "string",
+          description: "The UUID of the account",
+        },
+      },
+      required: ["accountId"],
+    },
+  },
+  {
+    name: "golem_get_application",
+    description:
+      "Get detailed information about a specific Golem application.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        applicationId: {
+          type: "string",
+          description: "The UUID of the application",
+        },
+      },
+      required: ["applicationId"],
+    },
+  },
+  {
+    name: "golem_get_worker_oplog",
+    description:
+      "Get the operation log (execution history) for a worker. Useful for debugging and understanding worker behavior.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name of the worker",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+  {
+    name: "golem_interrupt_worker",
+    description: "Interrupt (pause) a running worker.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name of the worker to interrupt",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+  {
+    name: "golem_resume_worker",
+    description: "Resume a previously interrupted worker.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        componentId: {
+          type: "string",
+          description: "The UUID of the component",
+        },
+        workerName: {
+          type: "string",
+          description: "The name of the worker to resume",
+        },
+      },
+      required: ["componentId", "workerName"],
+    },
+  },
+] as const;
+
+// ── Zod Schemas for Input Validation ──
+
+const UUIDSchema = z.string().uuid();
+const WorkerNameSchema = z.string().min(1);
+
+const schemas = {
+  golem_list_workers: z.object({ componentId: UUIDSchema }),
+  golem_get_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_create_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_delete_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_invoke_agent: z.object({
+    appName: z.string().min(1),
+    agentTypeName: z.string().min(1),
+    methodName: z.string().optional(),
+    methodParameters: z.unknown().optional(),
+    parameters: z.unknown().optional(),
+    envName: z.string().optional(),
+  }),
+  golem_get_component: z.object({ componentId: UUIDSchema }),
+  golem_list_applications: z.object({ accountId: UUIDSchema }),
+  golem_get_application: z.object({ applicationId: UUIDSchema }),
+  golem_get_worker_oplog: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_interrupt_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_resume_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+} as const;
+
+// ── Tool Call Handler ──
+
+export async function handleToolCall(
+  api: GolemAPI,
+  name: string,
+  args: Record<string, unknown>
+): Promise<{ content: Array<{ type: "text"; text: string }> }> {
+  const text = async (fn: () => Promise<unknown>) => {
+    const result = await fn();
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify(result, null, 2) }],
+    };
+  };
+
+  switch (name) {
+    case "golem_list_workers": {
+      const p = schemas.golem_list_workers.parse(args);
+      return text(() => api.listWorkers(p.componentId));
+    }
+    case "golem_get_worker": {
+      const p = schemas.golem_get_worker.parse(args);
+      return text(() => api.getWorker(p.componentId, p.workerName));
+    }
+    case "golem_create_worker": {
+      const p = schemas.golem_create_worker.parse(args);
+      return text(() => api.createWorker(p.componentId, p.workerName));
+    }
+    case "golem_delete_worker": {
+      const p = schemas.golem_delete_worker.parse(args);
+      return text(() => api.deleteWorker(p.componentId, p.workerName));
+    }
+    case "golem_invoke_agent": {
+      const p = schemas.golem_invoke_agent.parse(args);
+      return text(() => api.invokeAgent(p));
+    }
+    case "golem_get_component": {
+      const p = schemas.golem_get_component.parse(args);
+      return text(() => api.getComponent(p.componentId));
+    }
+    case "golem_list_applications": {
+      const p = schemas.golem_list_applications.parse(args);
+      return text(() => api.listApplications(p.accountId));
+    }
+    case "golem_get_application": {
+      const p = schemas.golem_get_application.parse(args);
+      return text(() => api.getApplication(p.applicationId));
+    }
+    case "golem_get_worker_oplog": {
+      const p = schemas.golem_get_worker_oplog.parse(args);
+      return text(() => api.getWorkerOplog(p.componentId, p.workerName));
+    }
+    case "golem_interrupt_worker": {
+      const p = schemas.golem_interrupt_worker.parse(args);
+      return text(() => api.interruptWorker(p.componentId, p.workerName));
+    }
+    case "golem_resume_worker": {
+      const p = schemas.golem_resume_worker.parse(args);
+      return text(() => api.resumeWorker(p.componentId, p.workerName));
+    }
+    default:
+      throw new Error(`Unknown tool: ${name}`);
+  }
+}

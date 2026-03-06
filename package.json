@@ -1,0 +1,42 @@
+{
+  "name": "@golem-cloud/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Golem Cloud — manage agents, deployments, and applications from AI assistants",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "golem-mcp-server": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "golem",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "claude",
+    "kubernetes",
+    "wasm",
+    "serverless"
+  ],
+  "author": "yunior123",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "files": [
+    "dist"
+  ]
+}
