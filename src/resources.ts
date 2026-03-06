@@ -68,7 +68,12 @@ export async function handleResourceRead(
 ): Promise<{
   contents: Array<{ uri: string; mimeType: string; text: string }>;
 }> {
-  const url = new URL(uri);
+  let url: URL;
+  try {
+    url = new URL(uri);
+  } catch {
+    throw new Error(`Invalid resource URI: ${uri}`);
+  }
   const path = url.hostname + url.pathname;
 
   // golem://applications/{accountId}
