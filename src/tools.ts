@@ -156,6 +156,77 @@ export const TOOLS = [
     },
   },
   {
+    name: "golem_list_environments",
+    description:
+      "List all visible environments. Environments are deployment targets within an application.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "golem_get_environment",
+    description: "Get details about a specific environment.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        environmentId: {
+          type: "string",
+          description: "The UUID of the environment",
+        },
+      },
+      required: ["environmentId"],
+    },
+  },
+  {
+    name: "golem_list_deployments",
+    description:
+      "List all deployments for an environment. Shows deployment history and current state.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        environmentId: {
+          type: "string",
+          description: "The UUID of the environment",
+        },
+      },
+      required: ["environmentId"],
+    },
+  },
+  {
+    name: "golem_get_deployment",
+    description: "Get a deployment summary including components and agent types.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        environmentId: {
+          type: "string",
+          description: "The UUID of the environment",
+        },
+        deploymentId: {
+          type: "string",
+          description: "The deployment ID or revision number",
+        },
+      },
+      required: ["environmentId", "deploymentId"],
+    },
+  },
+  {
+    name: "golem_list_components",
+    description:
+      "List all components in an environment. Components are compiled WASM modules.",
+    inputSchema: {
+      type: "object" as const,
+      properties: {
+        environmentId: {
+          type: "string",
+          description: "The UUID of the environment",
+        },
+      },
+      required: ["environmentId"],
+    },
+  },
+  {
     name: "golem_get_worker_oplog",
     description:
       "Get the operation log (execution history) for a worker. Useful for debugging and understanding worker behavior.",
@@ -236,6 +307,11 @@ const schemas = {
   golem_get_worker_oplog: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
   golem_interrupt_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
   golem_resume_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
+  golem_list_environments: z.object({}),
+  golem_get_environment: z.object({ environmentId: UUIDSchema }),
+  golem_list_deployments: z.object({ environmentId: UUIDSchema }),
+  golem_get_deployment: z.object({ environmentId: UUIDSchema, deploymentId: z.string().min(1) }),
+  golem_list_components: z.object({ environmentId: UUIDSchema }),
 } as const;
 
 // ── Tool Call Handler ──
@@ -296,6 +372,26 @@ export async function handleToolCall(
     case "golem_resume_worker": {
       const p = schemas.golem_resume_worker.parse(args);
       return text(() => api.resumeWorker(p.componentId, p.workerName));
+    }
+    case "golem_list_environments": {
+      schemas.golem_list_environments.parse(args);
+      return text(() => api.listEnvironments());
+    }
+    case "golem_get_environment": {
+      const p = schemas.golem_get_environment.parse(args);
+      return text(() => api.getEnvironment(p.environmentId));
+    }
+    case "golem_list_deployments": {
+      const p = schemas.golem_list_deployments.parse(args);
+      return text(() => api.listDeployments(p.environmentId));
+    }
+    case "golem_get_deployment": {
+      const p = schemas.golem_get_deployment.parse(args);
+      return text(() => api.getDeploymentSummary(p.environmentId, p.deploymentId));
+    }
+    case "golem_list_components": {
+      const p = schemas.golem_list_components.parse(args);
+      return text(() => api.listEnvironmentComponents(p.environmentId));
     }
     default:
       throw new Error(`Unknown tool: ${name}`);

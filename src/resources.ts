@@ -40,6 +40,24 @@ export const RESOURCE_TEMPLATES = [
     description: "Execution history and logs for a worker",
     mimeType: "application/json",
   },
+  {
+    uriTemplate: "golem://environments",
+    name: "Environments",
+    description: "List of all visible environments",
+    mimeType: "application/json",
+  },
+  {
+    uriTemplate: "golem://environments/{environmentId}",
+    name: "Environment Details",
+    description: "Detailed information about a specific environment",
+    mimeType: "application/json",
+  },
+  {
+    uriTemplate: "golem://environments/{environmentId}/deployments",
+    name: "Deployments",
+    description: "Deployment history for an environment",
+    mimeType: "application/json",
+  },
 ];
 
 // ── Resource Read Handler ──
@@ -92,6 +110,26 @@ export async function handleResourceRead(
   match = path.match(/^components\/([^/]+)$/);
   if (match) {
     const data = await api.getComponent(match[1]);
+    return wrap(uri, data);
+  }
+
+  // golem://environments
+  if (path === "environments") {
+    const data = await api.listEnvironments();
+    return wrap(uri, data);
+  }
+
+  // golem://environments/{environmentId}/deployments
+  match = path.match(/^environments\/([^/]+)\/deployments$/);
+  if (match) {
+    const data = await api.listDeployments(match[1]);
+    return wrap(uri, data);
+  }
+
+  // golem://environments/{environmentId}
+  match = path.match(/^environments\/([^/]+)$/);
+  if (match) {
+    const data = await api.getEnvironment(match[1]);
     return wrap(uri, data);
   }
 

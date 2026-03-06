@@ -126,6 +126,46 @@ export class GolemAPI {
     return this.request("POST", "/v1/agents/invoke-agent", params);
   }
 
+  // ── Environments ──
+
+  async listEnvironments(): Promise<unknown> {
+    return this.request("GET", "/v1/envs");
+  }
+
+  async getEnvironment(environmentId: string): Promise<unknown> {
+    return this.request("GET", `/v1/envs/${environmentId}`);
+  }
+
+  async listApplicationEnvironments(applicationId: string): Promise<unknown> {
+    return this.request("GET", `/v1/apps/${applicationId}/envs`);
+  }
+
+  // ── Deployments ──
+
+  async listDeployments(environmentId: string): Promise<unknown> {
+    return this.request("GET", `/v1/envs/${environmentId}/deployments`);
+  }
+
+  async getDeploymentSummary(
+    environmentId: string,
+    deploymentId: string
+  ): Promise<unknown> {
+    return this.request(
+      "GET",
+      `/v1/envs/${environmentId}/deployments/${deploymentId}/summary`
+    );
+  }
+
+  async listDeploymentAgentTypes(
+    environmentId: string,
+    deploymentId: string
+  ): Promise<unknown> {
+    return this.request(
+      "GET",
+      `/v1/envs/${environmentId}/deployments/${deploymentId}/agent-types`
+    );
+  }
+
   // ── Worker Logs (oplog) ──
 
   async getWorkerOplog(
