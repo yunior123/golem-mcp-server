@@ -49,7 +49,12 @@ async function main() {
   }));
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    return handleResourceRead(api, request.params.uri);
+    try {
+      return await handleResourceRead(api, request.params.uri);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new Error(message);
+    }
   });
 
   // ── Start ──

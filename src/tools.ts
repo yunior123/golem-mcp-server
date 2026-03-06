@@ -76,38 +76,30 @@ export const TOOLS = [
     },
   },
   {
-    name: "golem_invoke_agent",
+    name: "golem_invoke_worker",
     description:
-      "Invoke a function on a Golem agent. This calls a method on a running agent instance.",
+      "Invoke a function on a Golem worker and wait for the result. Calls a WASM exported function on a running worker instance.",
     inputSchema: {
       type: "object" as const,
       properties: {
-        appName: {
+        componentId: {
           type: "string",
-          description: "The application name",
+          description: "The UUID of the component",
         },
-        agentTypeName: {
+        workerName: {
           type: "string",
-          description: "The agent type name within the application",
+          description: "The name of the worker to invoke",
         },
-        methodName: {
+        functionName: {
           type: "string",
-          description: "The method to invoke on the agent",
+          description: "The exported function name to call (e.g. 'golem:it/api.{add}')",
         },
-        methodParameters: {
-          type: "object",
-          description: "Parameters to pass to the method (optional)",
-        },
-        parameters: {
-          type: "object",
-          description: "Agent initialization parameters (optional)",
-        },
-        envName: {
-          type: "string",
-          description: "Environment name (optional, defaults to default env)",
+        params: {
+          type: "array",
+          description: "Parameters to pass to the function (optional, defaults to [])",
         },
       },
-      required: ["appName", "agentTypeName"],
+      required: ["componentId", "workerName", "functionName"],
     },
   },
   {
@@ -293,13 +285,11 @@ const schemas = {
   golem_get_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
   golem_create_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
   golem_delete_worker: z.object({ componentId: UUIDSchema, workerName: WorkerNameSchema }),
-  golem_invoke_agent: z.object({
-    appName: z.string().min(1),
-    agentTypeName: z.string().min(1),
-    methodName: z.string().optional(),
-    methodParameters: z.unknown().optional(),
-    parameters: z.unknown().optional(),
-    envName: z.string().optional(),
+  golem_invoke_worker: z.object({
+    componentId: UUIDSchema,
+    workerName: WorkerNameSchema,
+    functionName: z.string().min(1),
+    params: z.array(z.unknown()).optional(),
   }),
   golem_get_component: z.object({ componentId: UUIDSchema }),
   golem_list_applications: z.object({ accountId: UUIDSchema }),
@@ -345,9 +335,9 @@ export async function handleToolCall(
       const p = schemas.golem_delete_worker.parse(args);
       return text(() => api.deleteWorker(p.componentId, p.workerName));
     }
-    case "golem_invoke_agent": {
-      const p = schemas.golem_invoke_agent.parse(args);
-      return text(() => api.invokeAgent(p));
+    case "golem_invoke_worker": {
+      const p = schemas.golem_invoke_worker.parse(args);
+      return text(() => api.invokeWorker(p.componentId, p.workerName, p.functionName, p.params));
     }
     case "golem_get_component": {
       const p = schemas.golem_get_component.parse(args);

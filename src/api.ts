@@ -1,5 +1,8 @@
 import type { Config } from "./config.js";
 
+/** Encode a path segment for safe URL construction. */
+const e = encodeURIComponent;
+
 export class GolemAPI {
   private baseUrl: string;
   private token: string;
@@ -40,46 +43,50 @@ export class GolemAPI {
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`Golem API ${method} ${path} returned ${res.status}: ${text}`);
+      // Truncate backend error to avoid leaking internal details to LLM client
+      const sanitized = text.length > 200 ? text.slice(0, 200) + "..." : text;
+      throw new Error(`Golem API ${method} ${path} returned ${res.status}: ${sanitized}`);
     }
 
     const contentType = res.headers.get("content-type") || "";
     if (contentType.includes("application/json")) {
       return (await res.json()) as T;
     }
-    return (await res.text()) as unknown as T;
+    // Handle 204 No Content and other non-JSON success responses
+    const text = await res.text();
+    return (text || null) as unknown as T;
   }
 
   // ── Applications ──
 
   async listApplications(accountId: string): Promise<unknown> {
-    return this.request("GET", `/v1/accounts/${accountId}/apps`);
+    return this.request("GET", `/v1/accounts/${e(accountId)}/apps`);
   }
 
   async getApplication(applicationId: string): Promise<unknown> {
-    return this.request("GET", `/v1/apps/${applicationId}`);
+    return this.request("GET", `/v1/apps/${e(applicationId)}`);
   }
 
   // ── Components ──
 
   async getComponent(componentId: string): Promise<unknown> {
-    return this.request("GET", `/v1/components/${componentId}`);
+    return this.request("GET", `/v1/components/${e(componentId)}`);
   }
 
   async listEnvironmentComponents(environmentId: string): Promise<unknown> {
-    return this.request("GET", `/v1/envs/${environmentId}/components`);
+    return this.request("GET", `/v1/envs/${e(environmentId)}/components`);
   }
 
-  // ── Workers (Agents) ──
+  // ── Workers ──
 
   async listWorkers(componentId: string): Promise<unknown> {
-    return this.request("GET", `/v1/components/${componentId}/workers`);
+    return this.request("GET", `/v1/components/${e(componentId)}/workers`);
   }
 
   async getWorker(componentId: string, workerName: string): Promise<unknown> {
     return this.request(
       "GET",
-      `/v1/components/${componentId}/workers/${encodeURIComponent(workerName)}`
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}`
     );
   }
 
@@ -87,7 +94,7 @@ export class GolemAPI {
     componentId: string,
     workerName: string
   ): Promise<unknown> {
-    return this.request("POST", `/v1/components/${componentId}/workers`, {
+    return this.request("POST", `/v1/components/${e(componentId)}/workers`, {
       name: workerName,
     });
   }
@@ -98,7 +105,7 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "DELETE",
-      `/v1/components/${componentId}/workers/${encodeURIComponent(workerName)}`
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}`
     );
   }
 
@@ -108,7 +115,7 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "POST",
-      `/v1/components/${componentId}/workers/${encodeURIComponent(workerName)}/interrupt`
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}/interrupt`
     );
   }
 
@@ -118,21 +125,23 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "POST",
-      `/v1/components/${componentId}/workers/${encodeURIComponent(workerName)}/resume`
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}/resume`
     );
   }
 
   // ── Agent Invocation ──
 
-  async invokeAgent(params: {
-    appName: string;
-    envName?: string;
-    agentTypeName: string;
-    parameters?: unknown;
-    methodName?: string;
-    methodParameters?: unknown;
-  }): Promise<unknown> {
-    return this.request("POST", "/v1/agents/invoke-agent", params);
+  async invokeWorker(
+    componentId: string,
+    workerName: string,
+    functionName: string,
+    params?: unknown
+  ): Promise<unknown> {
+    return this.request(
+      "POST",
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}/invoke-and-await`,
+      { function: functionName, params: params ?? [] }
+    );
   }
 
   // ── Environments ──
@@ -142,17 +151,17 @@ export class GolemAPI {
   }
 
   async getEnvironment(environmentId: string): Promise<unknown> {
-    return this.request("GET", `/v1/envs/${environmentId}`);
+    return this.request("GET", `/v1/envs/${e(environmentId)}`);
   }
 
   async listApplicationEnvironments(applicationId: string): Promise<unknown> {
-    return this.request("GET", `/v1/apps/${applicationId}/envs`);
+    return this.request("GET", `/v1/apps/${e(applicationId)}/envs`);
   }
 
   // ── Deployments ──
 
   async listDeployments(environmentId: string): Promise<unknown> {
-    return this.request("GET", `/v1/envs/${environmentId}/deployments`);
+    return this.request("GET", `/v1/envs/${e(environmentId)}/deployments`);
   }
 
   async getDeploymentSummary(
@@ -161,7 +170,7 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "GET",
-      `/v1/envs/${environmentId}/deployments/${deploymentId}/summary`
+      `/v1/envs/${e(environmentId)}/deployments/${e(deploymentId)}/summary`
     );
   }
 
@@ -171,7 +180,7 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "GET",
-      `/v1/envs/${environmentId}/deployments/${deploymentId}/agent-types`
+      `/v1/envs/${e(environmentId)}/deployments/${e(deploymentId)}/agent-types`
     );
   }
 
@@ -183,7 +192,7 @@ export class GolemAPI {
   ): Promise<unknown> {
     return this.request(
       "GET",
-      `/v1/components/${componentId}/workers/${encodeURIComponent(workerName)}/oplog`
+      `/v1/components/${e(componentId)}/workers/${e(workerName)}/oplog`
     );
   }
 }

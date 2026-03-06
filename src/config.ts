@@ -5,6 +5,7 @@ const ConfigSchema = z.object({
   apiUrl: z
     .string()
     .url()
+    .refine((u) => u.startsWith("https://"), "GOLEM_API_URL must use HTTPS")
     .default("https://release.api.golem.cloud"),
 });
 
